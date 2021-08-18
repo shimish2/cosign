@@ -31,7 +31,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/theupdateframework/go-tuf/encrypted"
 )
 
 func loadKey(keyPath string, pf cosign.PassFunc) (*signature.ECDSASignerVerifier, error) {
@@ -109,16 +108,12 @@ func LoadECDSAPrivateKey(key []byte, pass []byte) (*signature.ECDSASignerVerifie
 	if p == nil {
 		return nil, errors.New("invalid pem block")
 	}
-	if p.Type != cosign.PrivakeKeyPemType {
+
+	if p.Type != cosign.PrivakeKeyPemType && p.Type != "RSA PRIVATE KEY" && p.Type != "PRIVATE KEY" && p.Type != "EC PRIVATE KEY" {
 		return nil, fmt.Errorf("unsupported pem type: %s", p.Type)
 	}
 
-	x509Encoded, err := encrypted.Decrypt(p.Bytes, pass)
-	if err != nil {
-		return nil, errors.Wrap(err, "decrypt")
-	}
-
-	pk, err := x509.ParsePKCS8PrivateKey(x509Encoded)
+	pk, err := x509.ParsePKCS8PrivateKey(p.Bytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing private key")
 	}
